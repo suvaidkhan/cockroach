@@ -63,11 +63,13 @@ def _deps_rule_impl(ctx):
         prefixes = ctx.attr.disallowed_prefixes,
     )
     deps = {k: None for k in ctx.attr.src[_DepsInfo].deps.to_list()}
-    if ctx.attr.allowlist != None:
+    if ctx.attr.has_allowlist:
         failed = [p for p in deps if p not in ctx.attr.allowlist and
                                      p.label != ctx.attr.src.label]
+    elif ctx.attr.has_disallowed_list:
+        failed = [p for p in ctx.attr.disallowed_list if p in deps]
     else:
-        failed = [p for p in (ctx.attr.disallowed_list or []) if p in deps]
+        failed = []
     failures = []
     if failed_prefixes:
         failures.extend([
@@ -110,6 +112,8 @@ _deps_rule = rule(
         "disallow_cdeps": attr.bool(mandatory = False, default = False),
         "disallowed_list": attr.label_list(providers = [GoInfo]),
         "disallowed_prefixes": attr.string_list(mandatory = False, allow_empty = True),
+        "has_allowlist": attr.bool(default = False),
+        "has_disallowed_list": attr.bool(default = False),
     },
 )
 
@@ -155,6 +159,8 @@ def disallowed_imports_test(
         disallowed_list = disallowed_list,
         disallowed_prefixes = disallowed_prefixes,
         disallow_cdeps = disallow_cdeps,
+        has_allowlist = allowlist != None,
+        has_disallowed_list = disallowed_list != None,
     )
     native.sh_test(
         name = src.strip(":") + "_disallowed_imports_test",
